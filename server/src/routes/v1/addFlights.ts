@@ -6,7 +6,7 @@ const router = express.Router()
 
 router.get("/" , getAllFlightsAdded)
 router.put("/:userId" , authMiddleware , adminRoute  , updateFlights)
-router.post("/add" , authMiddleware , adminRoute , addFlights)
+router.post("/add"  , authMiddleware , adminRoute , addFlights)
 router.delete("/" , authMiddleware , adminRoute , deleteFlights)
 
 

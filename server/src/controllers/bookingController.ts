@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { FlightBook } from "../models/booking";
 import { Flight } from "../models/flights";
+import { connectQueue , recieveQueue } from "../notificationSystem";
+import { emailService } from "../config/emailService";
 
 export const getAllBooking = async (req: Request, res: Response): Promise<any> => {
     try {
@@ -58,21 +60,25 @@ export const addBooking = async (req: Request, res: Response): Promise<any> => {
         if (flight.origin != origin || flight.destination != destination || flight.airline != airline) {
             return res.json("booking details mismatch")
         }
+        const totalPrice = flightId.price * seatsBooked
 
         const newBooking = new FlightBook({
             flightId,
             userId: user?._id,
-            origin,
+            origin : origin,
             destination,
             bookingDate: new Date(bookingDate), // Ensure it's a Date object
-            bookedPrice,
             classes,
             airline,
             passengersName,
             passengerAge,
             passengerNumber,
-            bookingStatus: 'confirmed'
+            bookingStatus: 'confirmed',
+            seatsBooked ,
+            bookedPrice : totalPrice
         })
+
+        await emailService(user?.email , "Flight Booking Confirmed" , newBooking)
 
         const saveBooking = await newBooking.save()
 
@@ -119,10 +125,10 @@ export const updateBooking = async (req: Request, res: Response): Promise<any> =
                 return res.json(`only ${flightId.seatsAvailable} seats are available`)
             }
         }
-        await Flight.findByIdAndUpdate(flightId, { $inc: { seatsAvailable: +seatsBooked } })
+        await Flight.findByIdAndUpdate(flightId, { $inc: { seatsAvailable: +seatsBooked , bookedPrice : flightId.price * seatsBooked }}) 
 
         if(seatsBooked < 0 ){
-        await Flight.findByIdAndUpdate(flightId, { $inc: { seatsAvailable: -seatsBooked } })
+        await Flight.findByIdAndUpdate(flightId, { $inc: { seatsAvailable: -seatsBooked , bookedPrice : flightId.price * seatsBooked  } })
 
         }
 
